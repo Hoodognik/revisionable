@@ -132,10 +132,21 @@ class Revision extends Eloquent
         if (class_exists($main_model)) {
             $main_model = new $main_model;
 
+            if(count($main_model->sync_relations) >= 0 && in_array($this->key, array_keys($main_model->sync_relations))){
+                $rel_key = $this->key.'List';
+                $item = $main_model->$rel_key()->getRelated()::find($this->$which_value);
+                if(method_exists($item, 'identifiableName')) {
+                    // see if there's an available mutator
+                    $mutator = 'get' . studly_case($this->key) . 'Attribute';
+                    if (method_exists($item, $mutator)) {
+                        return $this->format($item->$mutator($this->key), $item->identifiableName());
+                    }
+                    return $this->format($this->key, $item->identifiableName());
+                }
+            }
             try {
                 if ($this->isRelated()) {
                     $related_model = $this->getRelatedModel();
-
                     // Now we can find out the namespace of of related model
                     if (!method_exists($main_model, $related_model)) {
                         $related_model = camel_case($related_model); // for cases like published_status_id
@@ -167,7 +178,6 @@ class Revision extends Eloquent
                         if (method_exists($item, $mutator)) {
                             return $this->format($item->$mutator($this->key), $item->identifiableName());
                         }
-
                         return $this->format($this->key, $item->identifiableName());
                     }
                 }
@@ -196,7 +206,7 @@ class Revision extends Eloquent
     private function isRelated()
     {
         $isRelated = false;
-        $idSuffix = '_id';
+        $idSuffix = '_hash';
         $pos = strrpos($this->key, $idSuffix);
 
         if ($pos !== false
@@ -213,9 +223,22 @@ class Revision extends Eloquent
      *
      * @return string
      */
-    private function getRelatedModel()
+    public function getRelatedModel()
     {
-        $idSuffix = '_id';
+		$main_model = $this->revisionable_type;
+		$main_model = new $main_model();
+		// searches the declared relatedModels
+		if (is_array($main_model->relatedModels)) {
+			// this should work with array_keys, but somehow it's not working
+			foreach ($main_model->relatedModels as $k => $v) {
+				if ($k == $this->key) {
+					return $v;
+				}
+			}
+		}
+		// if none found, try to guess it
+
+        $idSuffix = '_hash';
 
         return substr($this->key, 0, strlen($this->key) - strlen($idSuffix));
     }
