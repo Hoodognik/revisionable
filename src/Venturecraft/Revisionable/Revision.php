@@ -131,9 +131,19 @@ class Revision extends Eloquent
         // Load it, WITH the related model
         if (class_exists($main_model)) {
             $main_model = new $main_model;
-
-            if(count($main_model->sync_relations) >= 0 && in_array($this->key, array_keys($main_model->sync_relations))){
-                $rel_key = $this->key.'List';
+           /* if($this->key == 'attached') {
+                $key = $this->key;
+                dd(class_basename(get_class($main_model->$key())));
+            }*/
+            $key = $this->key;
+            $relation = null;
+            if( method_exists($main_model,$key) && class_basename(get_class($main_model->$key())) == 'MorphMany')
+                $relation = true;
+            if((count($main_model->sync_relations) >= 0 && in_array($this->key, array_keys($main_model->sync_relations))) or $relation ){
+                if(!$relation)
+                    $rel_key = $this->key.'List';
+                else
+                    $rel_key = $this->key;
                 $item = $main_model->$rel_key()->getRelated()::find($this->$which_value);
                 if(method_exists($item, 'identifiableName')) {
                     // see if there's an available mutator
