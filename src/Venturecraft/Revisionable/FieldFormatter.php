@@ -98,7 +98,7 @@ class FieldFormatter
 
         return sprintf($format, $value);
     }
-    
+
     /**
      * Format the datetime
      *
@@ -110,11 +110,55 @@ class FieldFormatter
     public static function datetime($value, $format = 'Y-m-d H:i:s')
     {
         if (empty($value)) {
-            return null;    
+            return null;
         }
-        
+
         $datetime = new \DateTime($value);
 
         return $datetime->format($format);
+    }
+
+    public static function options($value, $options = null)
+    {
+        if (!is_null($options)) {
+            $options = config($options);
+        }
+        return $options[$value];
+    }
+
+    public static function jsonfield($value, $labels = null, $unset = null)
+    {
+        $to_unset = [
+            'added_by',
+            'added_by_name',
+            'added_on',
+            'updated_by_name',
+            'updated_by',
+            'updated_on'
+        ];
+
+        $value = json_decode($value, true);
+        $position = 1;
+        foreach ($value as $key => $item){
+            if ($unset !== false)
+                $item = array_diff_key($item, array_flip($to_unset));
+
+            foreach($item as $it_key => $line)
+                {
+                    if($item[$it_key] == null) {
+                        unset($item[$it_key]);
+                        continue;
+                    }
+                    if(isset($labels[$it_key]))
+                        $item[$it_key] = $labels[$it_key].' : '.$line;
+                    else
+                        $item[$it_key] = $it_key.' : '.$line;
+                }
+            $value[$key] = $position . "<br>".implode("<br> ", $item)."<br>";
+            $position++;
+        }
+
+        $value = "<br>".implode("<br>", $value);
+        return $value;
     }
 }

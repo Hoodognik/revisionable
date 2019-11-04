@@ -128,16 +128,15 @@ class Revision extends Eloquent
 
         // First find the main model that was updated
         $main_model = $this->revisionable_type;
+        $key = $this->key;
         // Load it, WITH the related model
+       // if(isset($main_model->casts[$key]) && $main_model->casts[$key] == 'json'){
+       //     dd($main_model->$key);
+       // }
         if (class_exists($main_model)) {
             $main_model = new $main_model;
-           /* if($this->key == 'attached') {
-                $key = $this->key;
-                dd(class_basename(get_class($main_model->$key())));
-            }*/
-            $key = $this->key;
             $relation = null;
-            if( method_exists($main_model,$key) && class_basename(get_class($main_model->$key())) == 'MorphMany')
+            if( method_exists($main_model,$key))
                 $relation = true;
             if((count($main_model->sync_relations) >= 0 && in_array($this->key, array_keys($main_model->sync_relations))) or $relation ){
                 if(!$relation)
